@@ -103,7 +103,6 @@ impl Parser {
             self.regexs.get(&RegexType::CollectionRead).unwrap()
         };
     
-        // Extrair dados
         let data: Vec<(String, i64)> = self.regexs.get(&RegexType::Infos).unwrap().captures_iter(&message_raw)
             .map(|caps| (caps[1].to_string(), caps[2].parse().unwrap()))
             .collect();
@@ -128,7 +127,6 @@ impl Parser {
             .map(|caps| caps[2].to_string())
             .unwrap_or_default();
     
-        // Agora você pode usar os valores extraídos como desejar
         let query_data = QueryData {
             data,
             execution_time,
