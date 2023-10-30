@@ -12,7 +12,7 @@ struct QueryData {
     collection: String,
 }
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Clone)]
 enum RegexType {
     Line,
     Infos,
@@ -26,15 +26,17 @@ enum RegexType {
     CollectionRead
 }
 
+#[derive(Clone)]
 pub struct Parser {
     regexs: HashMap<RegexType, Regex>,
 }
 
 impl Parser {
-    pub fn new() -> Parser {
+    
+    pub fn new() -> Self {
         let mut regexs: HashMap<RegexType, Regex> = HashMap::new();
         regexs.insert(RegexType::Line, Regex::new(r"^(?P<timestamp>[0-9\-]+?T[0-9\.\:\-]+?)\s+(?P<severity>[A-Z]{1})\s+(?P<component>[A-Z\_]+?)\s+\[(?P<context>.+?)\]\s+(?P<message>.+)$").unwrap());
-        regexs.insert(RegexType::Infos, Regex::new(r"(bytesRead|nreturned|docsExamined|keysExamined|reslen):?\s?([0-9]+)").unwrap());
+        regexs.insert(RegexType::Infos, Regex::new(r"(bytesRead|nreturned|docsExamined|keysExamined|reslen|cursorid|hasSortStage|cursorExhausted):?\s?([0-9]+)").unwrap());
         regexs.insert(RegexType::ExecutionTime, Regex::new(r"([0-9]+)ms$").unwrap());
         regexs.insert(RegexType::PlanSummary, Regex::new(r"planSummary: ([A-Z_]+)").unwrap());
         regexs.insert(RegexType::CommandWrite, Regex::new(r"(warning:.+?)?(update|remove|insert)").unwrap());
@@ -47,7 +49,7 @@ impl Parser {
         Parser { regexs }
     }
 
-    pub fn parse_line(&mut self, log_line: String) -> Result<bson::Document, Box<dyn Error>> {
+    pub fn parse_line(&mut self, log_line: &str) -> Result<bson::Document, Box<dyn Error>> {
         let regex = self.regexs.get(&RegexType::Line).unwrap();
         if let Some(captures) = regex.captures(&log_line) {
             let timestamp = captures.name("timestamp").unwrap().as_str();
