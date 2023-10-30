@@ -66,16 +66,28 @@ fn main() {
              .help("Specifies the MongoDB URI to store the parsed logs")
              .required(false)
              .default_value("mongodb://localhost:27017")
+        )
+        .arg(
+            Arg::new("components")
+             .short('c')
+             .long("components")
+             .value_name("components")
+             .help("Specifies which component to parse")
+             .required(false)
+             .default_value("COMMAND,WRITE,QUERY")
         ).get_matches();
 
     let file_path: String = matches.get_one::<String>("logFile").unwrap().to_string();
-    let namespace: String = matches.get_one::<String>("namespace").unwrap().to_string();
     let uri: String = matches.get_one::<String>("uri").unwrap().to_string();
-    let colletion: Vec<&str> = namespace.split(".").collect::<Vec<&str>>();
+    let namespace: String = matches.get_one::<String>("namespace").unwrap().to_string();
+    let components: String = matches.get_one::<String>("components").unwrap().to_string();
+    
+    let namespace: Vec<&str> = namespace.split(".").collect::<Vec<&str>>();
+    let components: Vec<&str> = components.split(",").collect::<Vec<&str>>();
 
     let client = mongodb::get_client(uri);
-    let db = client.database(colletion[0]);
-    let collection: Collection<Document> = db.collection(colletion[1]);
+    let db = client.database(namespace[0]);
+    let collection: Collection<Document> = db.collection(namespace[1]);
     let num_threads = 10;
 
     let (sender, receiver): (
@@ -94,7 +106,7 @@ fn main() {
         mongodb_sender_thread(&collection, receiver);
     });
 
-    let file = File::open(file_path).expect("Falha ao abrir o arquivo");
+    let file = File::open(file_path).expect("Failed to open file");
     let reader = BufReader::new(DecodeReaderBytesBuilder::new()
         .encoding(Some(WINDOWS_1252))
         .build(file));
@@ -111,9 +123,11 @@ fn main() {
             
             let doc = parser.parse_line(&line);
             if doc.is_ok() {
-                sender.send(doc.unwrap()).expect("Failed to queue document for sending");
+                let doc: Document = doc.unwrap();
+                if components.contains(&doc.get_str("component").unwrap()) {
+                    sender.send(doc).expect("Failed to queue document for sending");
+                }
             }
-
             pb.set_message(&format!("Total lines read: {}", line_number));
         });
 
