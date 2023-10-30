@@ -1,6 +1,6 @@
 use mongodb::sync::Client;
 
-pub fn get_client() -> Client {
-    let client = Client::with_uri_str("mongodb://localhost:27017").unwrap();
+pub fn get_client(uri: String) -> Client {
+    let client = Client::with_uri_str(uri).unwrap();
     client
 }
