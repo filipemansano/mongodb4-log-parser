@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use clap::{Arg, Command};
+use encoding_rs::WINDOWS_1252;
+use encoding_rs_io::DecodeReaderBytesBuilder;
 use std::sync::mpsc;
 use std::time::Instant;
 use bson::Document;
@@ -63,12 +65,12 @@ fn main() {
              .value_name("URI")
              .help("Specifies the MongoDB URI to store the parsed logs")
              .required(false)
-             .default_missing_value("mongodb://localhost:27017")
+             .default_value("mongodb://localhost:27017")
         ).get_matches();
 
     let file_path: String = matches.get_one::<String>("logFile").unwrap().to_string();
-    let namespace: String = matches.get_one::<String>("logFile").unwrap().to_string();
-    let uri: String = matches.get_one::<String>("logFile").unwrap().to_string();
+    let namespace: String = matches.get_one::<String>("namespace").unwrap().to_string();
+    let uri: String = matches.get_one::<String>("uri").unwrap().to_string();
     let colletion: Vec<&str> = namespace.split(".").collect::<Vec<&str>>();
 
     let client = mongodb::get_client(uri);
@@ -93,7 +95,9 @@ fn main() {
     });
 
     let file = File::open(file_path).expect("Falha ao abrir o arquivo");
-    let reader = BufReader::new(file);
+    let reader = BufReader::new(DecodeReaderBytesBuilder::new()
+        .encoding(Some(WINDOWS_1252))
+        .build(file));
     let pb = ProgressBar::new_spinner();
 
 
