@@ -14,12 +14,12 @@ fn mongodb_sender_thread(receiver: mpsc::Receiver<Document>) {
     let client = mongodb::get_client();
     let db = client.database("ahgora");
     let collection: Collection<Document> = db.collection("logs4");
-
-    let mut batch = Vec::with_capacity(1000);
+    let batch_size = 1000;
+    let mut batch = Vec::with_capacity(batch_size);
 
     for doc in receiver {
 
-        if batch.len() == 1000 {
+        if batch.len() == batch_size {
             collection
                 .insert_many(batch.clone(), None)
                 .expect("Failed to insert documents");
